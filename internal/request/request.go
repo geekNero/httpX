@@ -25,6 +25,7 @@ type Request struct {
 	RequestLine RequestLine
 }
 
+// "testing"
 type RequestLine struct {
 	HttpVersion   string
 	RequestTarget string
@@ -48,7 +49,7 @@ func parseRequestLine(line string) (*RequestLine, error) {
 	requestTarget := startLineParts[1]
 	httpPart := strings.Split(startLineParts[2], "/")
 	if httpPart[0] != "HTTP" || httpPart[1] != "1.1" {
-		return nil, errors.New(fmt.Sprintf("Unsupported protocol: %s", startLineParts[2]))
+		return nil, fmt.Errorf("Unsupported protocol: %s", startLineParts[2])
 	}
 	return &RequestLine{
 		HttpVersion:   httpPart[1],
@@ -67,6 +68,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	if len(lines) == 0 {
 		return nil, errors.New("Invalid Request format")
 	}
+
 	reqLine, err := parseRequestLine(lines[0])
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse request header: %s, error: %s", lines[0], err.Error())
