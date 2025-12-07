@@ -17,6 +17,9 @@ const (
 
 	// HTTP New Line
 	CRLF = "\r\n"
+
+	// Input Stream Rate
+	Rate = 32
 )
 
 const (
@@ -35,7 +38,7 @@ var (
 type Request struct {
 	*RequestLine
 	State
-	rawStream string
+	rawStream strings.Builder
 }
 
 // "testing"
@@ -83,16 +86,18 @@ func (r *Request) parse(data []byte) (int, error) {
 	var idx int
 	var err error
 
-	r.rawStream += string(data)
+	r.rawStream.Write(data)
+	rawStream := r.rawStream.String()
 	if r.RequestLine == nil {
-		reqLine, idx, err = parseRequestLine(r.rawStream)
+		reqLine, idx, err = parseRequestLine(rawStream)
 		if err != nil {
 			return 0, err
 		}
 	}
 
 	if idx > 0 {
-		r.rawStream = r.rawStream[idx:]
+		r.rawStream.Reset()
+		r.rawStream.WriteString(rawStream[idx:])
 		r.RequestLine = reqLine
 		r.State = Done
 	}
@@ -103,7 +108,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	req := &Request{}
 	for req.State == Initialized {
 
-		reqByte := make([]byte, 32)
+		reqByte := make([]byte, Rate, Rate)
 		n, err := reader.Read(reqByte)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to read from reader, error: %s", err.Error())
