@@ -110,12 +110,15 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 
 		reqByte := make([]byte, Rate, Rate)
 		n, err := reader.Read(reqByte)
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return nil, fmt.Errorf("Failed to read from reader, error: %s", err.Error())
 		}
 		_, err = req.parse(reqByte[:n])
 		if err != nil {
 			return nil, fmt.Errorf("Failed to parse data stream, error: %s", err.Error())
+		}
+		if err == io.EOF && req.state != Done {
+			return nil, fmt.Errorf("Stream incomplete")
 		}
 	}
 	return req, nil
