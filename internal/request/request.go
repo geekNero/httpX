@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type State int
+type state int
 
 const (
 	// HTTP Methods
@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	Initialized State = iota
+	Initialized state = iota
 	Done
 )
 
@@ -37,7 +37,7 @@ var (
 
 type Request struct {
 	*RequestLine
-	State
+	state
 	rawStream strings.Builder
 }
 
@@ -99,14 +99,14 @@ func (r *Request) parse(data []byte) (int, error) {
 		r.rawStream.Reset()
 		r.rawStream.WriteString(rawStream[idx:])
 		r.RequestLine = reqLine
-		r.State = Done
+		r.state = Done
 	}
 	return idx, nil
 }
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
 	req := &Request{}
-	for req.State == Initialized {
+	for req.state == Initialized {
 
 		reqByte := make([]byte, Rate, Rate)
 		n, err := reader.Read(reqByte)
