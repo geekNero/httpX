@@ -69,7 +69,7 @@ func TestRequestLineParse(t *testing.T) {
 		data:            "GET /coffee HTTP/1.1 Love\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
 		numBytesPerRead: 6,
 	}
-	_, err = RequestFromReader()
+	_, err = RequestFromReader(reader)
 
 	require.Error(t, err)
 
