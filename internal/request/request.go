@@ -1,6 +1,7 @@
 package request
 
 import (
+	"basic_protocol/internal/common"
 	"errors"
 	"fmt"
 	"io"
@@ -14,9 +15,6 @@ const (
 	Post = "POST"
 	Get  = "GET"
 	Put  = "PUT"
-
-	// HTTP New Line
-	CRLF = "\r\n"
 
 	// Input Stream Rate
 	Rate = 32
@@ -49,7 +47,7 @@ type RequestLine struct {
 }
 
 func parseRequestLine(line string) (*RequestLine, int, error) {
-	idx := strings.Index(line, CRLF)
+	idx := strings.Index(line, common.CRLF)
 	if idx == -1 {
 		return nil, 0, nil
 	}
@@ -77,7 +75,7 @@ func parseRequestLine(line string) (*RequestLine, int, error) {
 		HttpVersion:   httpPart[1],
 		RequestTarget: requestTarget,
 		Method:        startLineParts[0],
-	}, idx + len(CRLF), nil
+	}, idx + len(common.CRLF), nil
 }
 
 func (r *Request) parse(data []byte) (int, error) {

@@ -1,40 +1,38 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"basic_protocol/internal/request"
 	"log"
 	"net"
-	"strings"
 )
 
-func getLinesChannel(f io.ReadCloser) <-chan string {
-	lines := make(chan string)
-	go func(ch chan<- string, f io.ReadCloser) {
-		defer close(ch)
-		defer f.Close()
-		s := ""
-		for {
-			sl := make([]byte, 8, 8)
-			n, _ := f.Read(sl)
-			if n == 0 {
-				break
-			}
-			s += string(sl)
-			broken := strings.Split(s, "\n")
-			if len(broken) == 1 {
-				s = broken[0]
-			} else {
-				ch <- broken[0]
-				s = broken[1]
-			}
-		}
-		if len(s) > 0 {
-			ch <- s
-		}
-	}(lines, f)
-	return lines
-}
+// func getLinesChannel(f io.ReadCloser) <-chan string {
+// 	lines := make(chan string)
+// 	go func(ch chan<- string, f io.ReadCloser) {
+// 		defer close(ch)
+// 		defer f.Close()
+// 		s := ""
+// 		for {
+// 			sl := make([]byte, 8, 8)
+// 			n, _ := f.Read(sl)
+// 			if n == 0 {
+// 				break
+// 			}
+// 			s += string(sl)
+// 			broken := strings.Split(s, "\n")
+// 			if len(broken) == 1 {
+// 				s = broken[0]
+// 			} else {
+// 				ch <- broken[0]
+// 				s = broken[1]
+// 			}
+// 		}
+// 		if len(s) > 0 {
+// 			ch <- s
+// 		}
+// 	}(lines, f)
+// 	return lines
+// }
 
 func main() {
 	listner, err := net.Listen("tcp", "localhost:42069")
@@ -49,10 +47,11 @@ func main() {
 			log.Fatal("error", err.Error())
 		}
 		log.Println("Connection accepted successfully")
-
-		ch := getLinesChannel(conn)
-		for s := range ch {
-			fmt.Println(s)
+		req, err := request.RequestFromReader(conn)
+		if err != nil {
+			log.Println("failed to read and parse request: ", err.Error())
+		} else {
+			log.Printf("Request Line: \n- Method: %s\n- Target: %s\n- Version: %s", req.Method, req.RequestTarget, req.HttpVersion)
 		}
 		log.Println("Connection closed")
 
