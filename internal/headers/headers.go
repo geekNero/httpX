@@ -75,6 +75,14 @@ func parseFieldLine(line string) (string, string, error) {
 	return key, value, nil
 }
 
+func (h Headers) insert(key, value string) {
+	if h[key] == "" {
+		h[key] = value
+	} else {
+		h[key] = strings.Join([]string{h[key], value}, ", ")
+	}
+}
+
 func (h Headers) Parse(data []byte) (int, bool, error) {
 	breakLine := []byte(common.CRLF)
 	var n int
@@ -98,7 +106,7 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 			return 0, false, err
 		}
 
-		h[key] = value
+		h.insert(key, value)
 
 		if n == len(data) {
 			return n, false, nil

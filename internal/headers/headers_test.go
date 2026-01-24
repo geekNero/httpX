@@ -62,4 +62,15 @@ func TestHeaders(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, 0, n)
 	assert.False(t, done)
+
+	// Test: Valid duplicate header keys
+	headers = NewHeaders()
+	data = []byte("Host: localhost\r\n Hell2: kennys\r\n Host: 0.0.0.0\r\n")
+	n, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	require.NotNil(t, headers)
+	assert.Equal(t, "localhost, 0.0.0.0", headers["host"])
+	assert.Equal(t, "kennys", headers["hell2"])
+	assert.Equal(t, 49, n)
+	assert.False(t, done)
 }
