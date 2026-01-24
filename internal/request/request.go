@@ -1,11 +1,12 @@
 package request
 
 import (
-	"basic_protocol/internal/common"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
+
+	"basic_protocol/internal/common"
 )
 
 type state int
@@ -25,13 +26,11 @@ const (
 	Done
 )
 
-var (
-	DefaultMethods = []string{
-		Post,
-		Get,
-		Put,
-	}
-)
+var DefaultMethods = []string{
+	Post,
+	Get,
+	Put,
+}
 
 type Request struct {
 	*RequestLine
@@ -39,9 +38,8 @@ type Request struct {
 	rawStream strings.Builder
 }
 
-// "testing"
 type RequestLine struct {
-	HttpVersion   string
+	HTTPVersion   string
 	RequestTarget string
 	Method        string
 }
@@ -55,7 +53,7 @@ func parseRequestLine(line string) (*RequestLine, int, error) {
 
 	startLineParts := strings.Split(line, " ")
 	if len(startLineParts) != 3 {
-		return nil, 0, errors.New("Invalid start-line format")
+		return nil, 0, errors.New("invalid start-line format")
 	}
 	validMethod := false
 	for _, method := range DefaultMethods {
@@ -64,22 +62,21 @@ func parseRequestLine(line string) (*RequestLine, int, error) {
 		}
 	}
 	if !validMethod {
-		return nil, 0, errors.New("Invalid Method")
+		return nil, 0, errors.New("invalid Method")
 	}
 	requestTarget := startLineParts[1]
 	httpPart := strings.Split(startLineParts[2], "/")
 	if httpPart[0] != "HTTP" || httpPart[1] != "1.1" {
-		return nil, 0, fmt.Errorf("Unsupported protocol: %s", startLineParts[2])
+		return nil, 0, fmt.Errorf("unsupported protocol: %s", startLineParts[2])
 	}
 	return &RequestLine{
-		HttpVersion:   httpPart[1],
+		HTTPVersion:   httpPart[1],
 		RequestTarget: requestTarget,
 		Method:        startLineParts[0],
 	}, idx + len(common.CRLF), nil
 }
 
 func (r *Request) parse(data []byte) (int, error) {
-
 	var reqLine *RequestLine
 	var idx int
 	var err error
@@ -106,17 +103,17 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	req := &Request{}
 	for req.state == Initialized {
 
-		reqByte := make([]byte, Rate, Rate)
+		reqByte := make([]byte, Rate)
 		n, err := reader.Read(reqByte)
 		if err != nil && err != io.EOF {
-			return nil, fmt.Errorf("Failed to read from reader, error: %s", err.Error())
+			return nil, fmt.Errorf("failed to read from reader, error: %s", err.Error())
 		}
 		_, err = req.parse(reqByte[:n])
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse data stream, error: %s", err.Error())
+			return nil, fmt.Errorf("failed to parse data stream, error: %s", err.Error())
 		}
 		if err == io.EOF && req.state != Done {
-			return nil, fmt.Errorf("Stream incomplete")
+			return nil, fmt.Errorf("stream incomplete")
 		}
 	}
 	return req, nil

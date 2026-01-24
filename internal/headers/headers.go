@@ -1,10 +1,12 @@
+// Package headers handles HTTP request headers
 package headers
 
 import (
-	"basic_protocol/internal/common"
 	"bytes"
 	"fmt"
 	"strings"
+
+	"basic_protocol/internal/common"
 )
 
 type Headers map[string]string
@@ -74,7 +76,6 @@ func parseFieldLine(line string) (string, string, error) {
 }
 
 func (h Headers) Parse(data []byte) (int, bool, error) {
-
 	breakLine := []byte(common.CRLF)
 	var n int
 

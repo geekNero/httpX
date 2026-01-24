@@ -39,7 +39,7 @@ func TestRequestLineParse(t *testing.T) {
 	require.NotNil(t, r)
 	assert.Equal(t, "GET", r.RequestLine.Method)
 	assert.Equal(t, "/", r.RequestLine.RequestTarget)
-	assert.Equal(t, "1.1", r.RequestLine.HttpVersion)
+	assert.Equal(t, "1.1", r.RequestLine.HTTPVersion)
 
 	// // Test: Good GET Request line with path
 
@@ -51,7 +51,7 @@ func TestRequestLineParse(t *testing.T) {
 	require.NotNil(t, r)
 	assert.Equal(t, "GET", r.RequestLine.Method)
 	assert.Equal(t, "/coffee", r.RequestLine.RequestTarget)
-	assert.Equal(t, "1.1", r.RequestLine.HttpVersion)
+	assert.Equal(t, "1.1", r.RequestLine.HTTPVersion)
 
 	// // Test: Good POST Request line with path
 	reader.data = "POST /coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"
@@ -62,7 +62,7 @@ func TestRequestLineParse(t *testing.T) {
 	require.NotNil(t, r)
 	assert.Equal(t, "POST", r.RequestLine.Method)
 	assert.Equal(t, "/coffee", r.RequestLine.RequestTarget)
-	assert.Equal(t, "1.1", r.RequestLine.HttpVersion)
+	assert.Equal(t, "1.1", r.RequestLine.HTTPVersion)
 
 	// // Test: Invalid number of request line parts
 	reader = &chunkReader{

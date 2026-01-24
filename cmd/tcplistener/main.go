@@ -1,9 +1,10 @@
 package main
 
 import (
-	"basic_protocol/internal/request"
 	"log"
 	"net"
+
+	"basic_protocol/internal/request"
 )
 
 // func getLinesChannel(f io.ReadCloser) <-chan string {
@@ -51,7 +52,7 @@ func main() {
 		if err != nil {
 			log.Println("failed to read and parse request: ", err.Error())
 		} else {
-			log.Printf("Request Line: \n- Method: %s\n- Target: %s\n- Version: %s", req.Method, req.RequestTarget, req.HttpVersion)
+			log.Printf("Request Line: \n- Method: %s\n- Target: %s\n- Version: %s", req.Method, req.RequestTarget, req.HTTPVersion)
 		}
 		log.Println("Connection closed")
 

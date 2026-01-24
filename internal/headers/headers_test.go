@@ -45,6 +45,7 @@ func TestHeaders(t *testing.T) {
 	n, done, err = headers.Parse(data)
 	assert.Equal(t, 39, n)
 	assert.True(t, done)
+	assert.Nil(t, err)
 
 	// Test: Incomplete Value
 	headers = NewHeaders()
@@ -61,5 +62,4 @@ func TestHeaders(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, 0, n)
 	assert.False(t, done)
-
 }
