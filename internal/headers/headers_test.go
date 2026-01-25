@@ -10,25 +10,27 @@ import (
 func TestHeaders(t *testing.T) {
 	// Test: Valid single header
 	headers := NewHeaders()
-	data := []byte("Host: localhost:42069\r\n\r\n")
+	inputBuffer := "Host: localhost:42069\r\n\r\n"
+	data := []byte(inputBuffer)
 	n, done, err := headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
 	val, err := headers.Get("Host")
 	require.NoError(t, err)
 	assert.Equal(t, "localhost:42069", val)
-	assert.Equal(t, 25, n)
+	assert.Equal(t, len(inputBuffer), n)
 	assert.True(t, done)
 
 	// Test: Valid double headers
 	headers = NewHeaders()
-	data = []byte("Host: localhost:42069\r\n Hell2: kennys\r\n")
+	inputBuffer = "Host: localhost:42069\r\n Hell2: kennys\r\n"
+	data = []byte(inputBuffer)
 	n, done, err = headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
 	assert.Equal(t, "localhost:42069", headers["host"])
 	assert.Equal(t, "kennys", headers["hell2"])
-	assert.Equal(t, 39, n)
+	assert.Equal(t, len(inputBuffer), n)
 	assert.False(t, done)
 
 	// Test: Invalid spacing header
@@ -65,12 +67,13 @@ func TestHeaders(t *testing.T) {
 
 	// Test: Valid duplicate header keys
 	headers = NewHeaders()
-	data = []byte("Host: localhost\r\n Hell2: kennys\r\n Host: 0.0.0.0\r\n")
+	inputBuffer = "Host: localhost\r\n Hell2: kennys\r\n Host: 0.0.0.0\r\n"
+	data = []byte(inputBuffer)
 	n, done, err = headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
 	assert.Equal(t, "localhost, 0.0.0.0", headers["host"])
 	assert.Equal(t, "kennys", headers["hell2"])
-	assert.Equal(t, 49, n)
+	assert.Equal(t, len(inputBuffer), n)
 	assert.False(t, done)
 }

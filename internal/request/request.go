@@ -130,10 +130,8 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			return nil, fmt.Errorf("stream incomplete")
 		}
 	}
-	// var h headers.Headers
-	// for{
 
-	// 	h.p
+	// for {
 	// }
 	return req, nil
 }
