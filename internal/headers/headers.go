@@ -46,6 +46,8 @@ func isValidHeaderKey(s string) bool {
 	return true
 }
 
+// parseFieldLine parses an entire header line, returns key (string), value (string)
+// and error encountered (error)
 func parseFieldLine(line string) (string, string, error) {
 	keyEnd := strings.Index(line, ":")
 	if keyEnd == -1 {
@@ -83,6 +85,8 @@ func (h Headers) insert(key, value string) {
 	}
 }
 
+// Parse processess header data in request. It takes in a byte array and returns
+// number of bytes consumed (int), header section ended (bool) and error encountered (error)
 func (h Headers) Parse(data []byte) (int, bool, error) {
 	breakLine := []byte(common.CRLF)
 	var n int

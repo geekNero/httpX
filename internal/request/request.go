@@ -34,6 +34,7 @@ var DefaultMethods = []string{
 
 type Request struct {
 	*RequestLine
+	// state determines whether the RequestLine has been read or not, it's values can be Initialized and Done.
 	state
 	rawStream strings.Builder
 }
@@ -45,6 +46,7 @@ type RequestLine struct {
 }
 
 func parseRequestLine(line string) (*RequestLine, int, error) {
+	// Waiting until we hit the CRLF token
 	idx := strings.Index(line, common.CRLF)
 	if idx == -1 {
 		return nil, 0, nil
@@ -76,6 +78,11 @@ func parseRequestLine(line string) (*RequestLine, int, error) {
 	}, idx + len(common.CRLF), nil
 }
 
+/*
+parse takes in []byte as input, and returns number of lines processed, and error encountered.
+It buffers the bytes in Request.rawStream until it has sufficient bytes to process the RequestLine.
+After processing the RequestLine, any extra bytes are stored in rawStream to be used ahead.
+*/
 func (r *Request) parse(data []byte) (int, error) {
 	var reqLine *RequestLine
 	var idx int
@@ -101,13 +108,20 @@ func (r *Request) parse(data []byte) (int, error) {
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
 	req := &Request{}
+
+	// This loop polls the reader until it is able to read the RequestLine
 	for req.state == Initialized {
 
+		// we poll at max Rate bytes of data in every iteration
 		reqByte := make([]byte, Rate)
 		n, err := reader.Read(reqByte)
-		if err != nil && err != io.EOF {
+		if err != nil {
+			if err == io.EOF {
+				return nil, fmt.Errorf("stream incomplete")
+			}
 			return nil, fmt.Errorf("failed to read from reader, error: %s", err.Error())
 		}
+		// req.parse stores all bytes in rawStream, which can be directly used in further functions
 		_, err = req.parse(reqByte[:n])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse data stream, error: %s", err.Error())
@@ -116,5 +130,10 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			return nil, fmt.Errorf("stream incomplete")
 		}
 	}
+	// var h headers.Headers
+	// for{
+
+	// 	h.p
+	// }
 	return req, nil
 }
