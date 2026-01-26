@@ -25,6 +25,7 @@ const (
 const (
 	Initialized state = iota
 	Done
+	requestStateParsingHeaders
 )
 
 var DefaultMethods = []string{
@@ -87,6 +88,7 @@ func (r *Request) wrapperRequestLine(data []byte) (int, bool, error) {
 	}
 	if idx > 0 {
 		r.RequestLine = reqLine
+		r.state = requestStateParsingHeaders
 		return idx, true, nil
 	} else {
 		return idx, false, nil
@@ -99,7 +101,6 @@ It buffers the bytes in Request.rawStream until it has sufficient bytes to proce
 After processing the RequestLine, any extra bytes are stored in rawStream to be used ahead.
 */
 func (r *Request) parse(data []byte, caller func(data []byte) (int, bool, error)) (int, bool, error) {
-
 	r.rawStream = append(r.rawStream, data...)
 
 	n, done, err := caller(r.rawStream)
@@ -114,7 +115,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	var err error
 	reqByte := make([]byte, Rate)
 	// This loop polls the reader until it is able to read the RequestLine
-	for !done {
+	for req.state == Initialized {
 
 		// we poll at max Rate bytes of data in every iteration
 		n, err := reader.Read(reqByte)
@@ -125,7 +126,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			return nil, fmt.Errorf("failed to read for requestLine, error: %s", err.Error())
 		}
 		// req.parse stores all bytes in rawStream, which can be directly used in further functions
-		_, done, err = req.parse(reqByte[:n], req.wrapperRequestLine)
+		_, _, err = req.parse(reqByte[:n], req.wrapperRequestLine)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse data stream, error: %s", err.Error())
 		}
@@ -135,7 +136,6 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	// setting n to 0, as we want to take a pass with the existing leftover rawData
 	// this is also why we are parsing first and reading second
 	n = 0
-	done = false
 	reqByte = make([]byte, Rate)
 	// Iterating for headers
 	for {
@@ -153,5 +153,6 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	}
 	req.state = Done
 	req.Headers = h
+
 	return req, nil
 }
