@@ -100,7 +100,7 @@ func TestRequestLineParse(t *testing.T) {
 		data:            "GET / HTTP/1.1\r\nHost localhost:42069\r\n\r\n",
 		numBytesPerRead: 3,
 	}
-	r, err = RequestFromReader(reader)
+	_, err = RequestFromReader(reader)
 	require.Error(t, err)
 
 	// Test: Empty Headers
@@ -151,15 +151,21 @@ func TestRequestLineParse(t *testing.T) {
 	assert.EqualError(t, err, "failed to parse headers, error: malformed header key")
 	require.Nil(t, r)
 
-	// // Test: Good POST Request line with path
-	// reader.data = "POST /coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"
-	// reader.numBytesPerRead = 4
-	// reader.pos = 0
-	// r, err = RequestFromReader(reader)
-	// require.NoError(t, err)
-	// require.NotNil(t, r)
-	// assert.Equal(t, "POST", r.Method)
-	// assert.Equal(t, "/coffee", r.RequestTarget)
-	// assert.Equal(t, "1.1", r.HTTPVersion)
+	// Test: Double headers
+	reader.data = "POST /coffee HTTP/1.1\r\nHost: localhost:42069\r\nAccept: csv\r\nAccept: json\r\n\r\n"
+	reader.numBytesPerRead = 4
+	reader.pos = 0
+	r, err = RequestFromReader(reader)
+	require.NoError(t, err)
+	require.NotNil(t, r)
+	assert.Equal(t, "csv, json", r.Headers["accept"])
+	assert.Equal(t, "localhost:42069", r.Headers["host"])
 
+	// Test: Missing CRLF token
+	reader.data = "POST /coffee HTTP/1.1\r\nHost: localhost:42069\r\nAccept: csv\r\nAccept: json\r\n"
+	reader.numBytesPerRead = 4
+	reader.pos = 0
+	r, err = RequestFromReader(reader)
+	require.Nil(t, r)
+	assert.EqualError(t, err, "failed to read data for headers, error: EOF")
 }
