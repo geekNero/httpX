@@ -40,6 +40,9 @@ func TestRequestLineParse(t *testing.T) {
 	assert.Equal(t, "GET", r.Method)
 	assert.Equal(t, "/", r.RequestTarget)
 	assert.Equal(t, "1.1", r.HTTPVersion)
+	assert.Equal(t, "localhost:42069", r.Headers["host"])
+	assert.Equal(t, "curl/7.81.0", r.Headers["user-agent"])
+	assert.Equal(t, "*/*", r.Headers["accept"])
 
 	// Test: Good GET Request line with path
 
@@ -91,4 +94,72 @@ func TestRequestLineParse(t *testing.T) {
 	// Test: Incomplete bytes
 	_, err = RequestFromReader(strings.NewReader("G"))
 	require.Error(t, err)
+
+	// Test: Malformed Header
+	reader = &chunkReader{
+		data:            "GET / HTTP/1.1\r\nHost localhost:42069\r\n\r\n",
+		numBytesPerRead: 3,
+	}
+	r, err = RequestFromReader(reader)
+	require.Error(t, err)
+
+	// Test: Empty Headers
+	reader.data = "GET /coffee HTTP/1.1\r\n\r\n"
+	reader.numBytesPerRead = 1
+	reader.pos = 0
+	r, err = RequestFromReader(reader)
+	require.Error(t, err)
+	require.Nil(t, r)
+
+	// Test: No Host Header present
+	reader.data = "GET /coffee HTTP/1.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"
+	reader.numBytesPerRead = 1
+	reader.pos = 0
+	r, err = RequestFromReader(reader)
+	assert.EqualError(t, err, "failed to parse headers, error: host not found in headers")
+	require.Nil(t, r)
+
+	// Test: Malformed headers: expected ':' separator missing
+	reader.data = "GET /coffee HTTP/1.1\r\nUser-Agent curl/7.81.0\r\nAccept: */*\r\n\r\n"
+	reader.numBytesPerRead = 6
+	reader.pos = 0
+	r, err = RequestFromReader(reader)
+	assert.EqualError(t, err, "failed to parse headers, error: expected ':' separator missing")
+	require.Nil(t, r)
+
+	// Test: Malformed headers: missing header value
+	reader.data = "GET /coffee HTTP/1.1\r\nUser-Agent: \r\nAccept: */*\r\n\r\n"
+	reader.numBytesPerRead = 6
+	reader.pos = 0
+	r, err = RequestFromReader(reader)
+	assert.EqualError(t, err, "failed to parse headers, error: missing header value")
+	require.Nil(t, r)
+
+	// Test: Malformed headers: missing header key
+	reader.data = "GET /coffee HTTP/1.1\r\n: curl/7.81.0\r\nAccept: */*\r\n\r\n"
+	reader.numBytesPerRead = 6
+	reader.pos = 0
+	r, err = RequestFromReader(reader)
+	assert.EqualError(t, err, "failed to parse headers, error: missing header key")
+	require.Nil(t, r)
+
+	// Test: Malformed headers: malformed header key
+	reader.data = "GET /coffee HTTP/1.1\r\n{}: curl/7.81.0\r\nAccept: */*\r\n\r\n"
+	reader.numBytesPerRead = 6
+	reader.pos = 0
+	r, err = RequestFromReader(reader)
+	assert.EqualError(t, err, "failed to parse headers, error: malformed header key")
+	require.Nil(t, r)
+
+	// // Test: Good POST Request line with path
+	// reader.data = "POST /coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"
+	// reader.numBytesPerRead = 4
+	// reader.pos = 0
+	// r, err = RequestFromReader(reader)
+	// require.NoError(t, err)
+	// require.NotNil(t, r)
+	// assert.Equal(t, "POST", r.Method)
+	// assert.Equal(t, "/coffee", r.RequestTarget)
+	// assert.Equal(t, "1.1", r.HTTPVersion)
+
 }

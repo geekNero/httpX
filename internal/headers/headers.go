@@ -9,6 +9,10 @@ import (
 	"basic_protocol/internal/common"
 )
 
+const (
+	HOST = "host"
+)
+
 type Headers map[string]string
 
 func NewHeaders() Headers {
@@ -102,6 +106,10 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 		n += idx + len(common.CRLF)
 
 		if parsableString == "" {
+			hostValue, _ := h.Get(HOST)
+			if hostValue == "" {
+				return n, false, fmt.Errorf("host not found in headers")
+			}
 			return n, true, nil
 		}
 
