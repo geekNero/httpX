@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	HOST = "host"
+	HOST           = "host"
+	CONTENT_LENGTH = "content-length"
 )
 
 type Headers map[string]string

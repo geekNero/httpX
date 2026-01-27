@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"basic_protocol/internal/common"
@@ -26,6 +27,7 @@ const (
 	Initialized state = iota
 	Done
 	requestStateParsingHeaders
+	parsingBody
 )
 
 var DefaultMethods = []string{
@@ -40,6 +42,7 @@ type Request struct {
 	state
 	rawStream []byte
 	headers.Headers
+	Body []byte
 }
 
 type RequestLine struct {
@@ -151,8 +154,30 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			return nil, fmt.Errorf("failed to read data for headers, error: %s", err.Error())
 		}
 	}
-	req.state = Done
 	req.Headers = h
+
+	// If content-length is not empty, parse the body
+	contentLengthHeader, _ := req.Get(headers.CONTENT_LENGTH)
+	if contentLengthHeader != "" {
+		req.state = parsingBody
+		contentLength, err := strconv.Atoi(contentLengthHeader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse content-length, error: %s", err.Error())
+		}
+		req.Body = req.rawStream
+		req.rawStream = nil
+		for len(req.Body) < contentLength {
+			_, err = reader.Read(reqByte)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read complete request body, error: %s", err.Error())
+			}
+
+			req.Body = append(req.Body, reqByte...)
+		}
+		req.Body = req.Body[:contentLength]
+	}
+
+	req.state = Done
 
 	return req, nil
 }
