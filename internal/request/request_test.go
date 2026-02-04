@@ -233,4 +233,19 @@ func TestRequestBody(t *testing.T) {
 	require.NoError(t, err)
 	// Typically, without Content-Length (or Transfer-Encoding), the body is treated as empty
 	assert.Empty(t, r.Body)
+
+	// Test: Body longer than reported content length
+	// (Should read only up to Content-Length and ignore the rest)
+	reader = &chunkReader{
+		data: "POST /submit HTTP/1.1\r\n" +
+			"Host: localhost:42069\r\n" +
+			"Content-Length: 13\r\n" +
+			"\r\n" +
+			"hello world!\nextra garbage",
+		numBytesPerRead: 3,
+	}
+	r, err = RequestFromReader(reader)
+	require.NoError(t, err)
+	// Assert that we only got the first 13 bytes
+	assert.Equal(t, "hello world!\n", string(r.Body))
 }
