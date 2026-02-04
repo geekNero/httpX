@@ -172,7 +172,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 				return nil, fmt.Errorf("failed to read complete request body, error: %s", err.Error())
 			}
 
-			req.Body = append(req.Body, reqByte...)
+			req.Body = append(req.Body, reqByte[:n]...)
 		}
 		req.Body = req.Body[:contentLength]
 	}
