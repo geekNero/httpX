@@ -167,7 +167,8 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		req.Body = req.rawStream
 		req.rawStream = nil
 		for len(req.Body) < contentLength {
-			_, err = reader.Read(reqByte)
+			// fmt.Println("Current Body: ", string(req.Body))
+			n, err = reader.Read(reqByte)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read complete request body, error: %s", err.Error())
 			}
