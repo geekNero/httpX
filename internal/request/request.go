@@ -38,7 +38,7 @@ var DefaultMethods = []string{
 
 type Request struct {
 	*RequestLine
-	// state determines whether the RequestLine has been read or not, it's values can be Initialized and Done.
+	// state determines whether the RequestLine has been read or not.
 	state
 	rawStream []byte
 	headers.Headers

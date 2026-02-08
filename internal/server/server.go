@@ -3,6 +3,9 @@ package server
 
 import (
 	"basic_protocol/internal/common"
+	"basic_protocol/internal/request"
+	"basic_protocol/internal/response"
+	"bytes"
 	"errors"
 	"log"
 	"net"
@@ -10,27 +13,20 @@ import (
 	"sync/atomic"
 )
 
-var (
-	temp = []byte(`HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 13
-
-Hello World!\n`)
-)
-
 type Server struct {
 	port     int
 	running  atomic.Bool
 	listener net.Listener
+	handler  Handler
 }
 
-func Serve(port int) (*Server, error) {
-	listener, err := net.Listen(common.TCP, common.LocalHost+":"+strconv.Itoa(port))
-
+func Serve(port int, handler Handler) (*Server, error) {
 	server := Server{}
+	listener, err := net.Listen(common.TCP, common.LocalHost+":"+strconv.Itoa(port))
 	if err != nil {
 		return nil, err
 	}
+	server.handler = handler
 	server.listener = listener
 	server.running.Store(true)
 	go server.listen()
@@ -38,12 +34,26 @@ func Serve(port int) (*Server, error) {
 }
 
 func (s *Server) handle(conn net.Conn) {
-	_, err := conn.Write(temp)
+	defer conn.Close()
+	request, err := request.RequestFromReader(conn)
 	if err != nil {
-		log.Println("failed to write to connection, error: ", err.Error())
+		response.WriteStatusLine(conn, response.BadRequest)
+		conn.Write([]byte(err.Error()))
+		return
 	}
-	conn.Close()
-	log.Println("Written to connection")
+	respWriter := bytes.Buffer{}
+	herr := s.handler(&respWriter, request)
+	// Do this only when herr is not nil
+	err = response.WriteStatusLine(conn, herr.StatusCode)
+	if err != nil {
+		return
+	}
+
+	err = response.WriteHeaders(conn, response.GetDefaultHeaders(respWriter.Len()))
+	if err != nil {
+		return
+	}
+	conn.Write(respWriter.Bytes())
 }
 
 func (s *Server) listen() {

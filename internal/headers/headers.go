@@ -12,6 +12,8 @@ import (
 const (
 	HOST           = "host"
 	CONTENT_LENGTH = "content-length"
+	CONNECTON      = "connection"
+	CONTENT_TYPE   = "content-type"
 )
 
 type Headers map[string]string
