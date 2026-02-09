@@ -14,20 +14,22 @@ import (
 const port = 42069
 
 func testFunc(w io.Writer, req *request.Request) *server.HandlerError {
-	herr := server.HandlerError{}
+	var herr *server.HandlerError
 	switch req.RequestTarget {
 	case "/yourproblem":
-		herr.StatusCode = response.BadRequest
-		w.Write([]byte("Your problem is not my problem\n"))
+		herr = &server.HandlerError{
+			StatusCode: response.BadRequest,
+			Message:    "Your problem is not my problem\n",
+		}
 	case "/myproblem":
-		herr.StatusCode = response.InternalServerError
-		w.Write([]byte("Woopsie, my bad\n"))
+		herr = &server.HandlerError{
+			StatusCode: response.InternalServerError,
+			Message:    "Woopsie, my bad\n",
+		}
 	default:
-		// Do not fill herr for status ok
-		herr.StatusCode = response.OK
 		w.Write([]byte("All good, frfr\n"))
 	}
-	return &herr
+	return herr
 }
 
 func main() {

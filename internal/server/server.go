@@ -43,17 +43,28 @@ func (s *Server) handle(conn net.Conn) {
 	}
 	respWriter := bytes.Buffer{}
 	herr := s.handler(&respWriter, request)
-	// Do this only when herr is not nil
-	err = response.WriteStatusLine(conn, herr.StatusCode)
+	var statusCode response.StatusCode
+	var responseBody []byte
+	if herr != nil {
+		statusCode = herr.StatusCode
+		responseBody = []byte(herr.Message)
+	} else {
+		statusCode = response.OK
+		responseBody = respWriter.Bytes()
+	}
+	err = response.WriteStatusLine(conn, statusCode)
 	if err != nil {
+		log.Println("failed to write status, error", err.Error())
 		return
 	}
 
-	err = response.WriteHeaders(conn, response.GetDefaultHeaders(respWriter.Len()))
+	err = response.WriteHeaders(conn, response.GetDefaultHeaders(len(responseBody)))
 	if err != nil {
+		log.Println("failed to write headers, error", err.Error())
 		return
 	}
-	conn.Write(respWriter.Bytes())
+
+	conn.Write(responseBody)
 }
 
 func (s *Server) listen() {
