@@ -5,7 +5,6 @@ import (
 	"basic_protocol/internal/common"
 	"basic_protocol/internal/request"
 	"basic_protocol/internal/response"
-	"bytes"
 	"errors"
 	"log"
 	"net"
@@ -35,36 +34,20 @@ func Serve(port int, handler Handler) (*Server, error) {
 
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
+	resp := response.NewResponseWriter(conn)
 	request, err := request.RequestFromReader(conn)
 	if err != nil {
-		response.WriteStatusLine(conn, response.BadRequest)
-		conn.Write([]byte(err.Error()))
-		return
-	}
-	respWriter := bytes.Buffer{}
-	herr := s.handler(&respWriter, request)
-	var statusCode response.StatusCode
-	var responseBody []byte
-	if herr != nil {
-		statusCode = herr.StatusCode
-		responseBody = []byte(herr.Message)
-	} else {
-		statusCode = response.OK
-		responseBody = respWriter.Bytes()
-	}
-	err = response.WriteStatusLine(conn, statusCode)
-	if err != nil {
-		log.Println("failed to write status, error", err.Error())
-		return
-	}
+		errorString := "failed to parse request, error: " + err.Error()
+		err1 := resp.WriteStatusLine(response.BadRequest)
+		err2 := resp.WriteHeaders(response.GetDefaultHeaders(len(errorString)))
+		_, err = resp.WriteBody([]byte(errorString))
 
-	err = response.WriteHeaders(conn, response.GetDefaultHeaders(len(responseBody)))
-	if err != nil {
-		log.Println("failed to write headers, error", err.Error())
+		if err != nil || err1 != nil || err2 != nil {
+			log.Printf("failure while writing bad request to response, error: statusLine: %s, headers: %s, body: %s\n", err1.Error(), err2.Error(), err.Error())
+		}
 		return
 	}
-
-	conn.Write(responseBody)
+	s.handler(resp, request)
 }
 
 func (s *Server) listen() {

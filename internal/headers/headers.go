@@ -84,12 +84,28 @@ func parseFieldLine(line string) (string, string, error) {
 	return key, value, nil
 }
 
-func (h Headers) insert(key, value string) {
+// Set adds the header key with the given value if the key isn't already present, else
+// it appends the value.
+func (h Headers) Set(key, value string) error {
+	if !isValidHeaderKey(key) {
+		return fmt.Errorf("header key contains disallowed characters")
+	}
 	if h[key] == "" {
 		h[key] = value
 	} else {
 		h[key] = strings.Join([]string{h[key], value}, ", ")
 	}
+	return nil
+}
+
+// Override unlike Set updates the value of the key to the parameter value if the key is already present,
+// else it adds the key.
+func (h Headers) Override(key, value string) error {
+	if !isValidHeaderKey(key) {
+		return fmt.Errorf("header key contains disallowed characters")
+	}
+	h[key] = value
+	return nil
 }
 
 // Parse processess header data in request. It takes in a byte array and returns
@@ -121,7 +137,7 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 			return 0, false, err
 		}
 
-		h.insert(key, value)
+		h.Set(key, value)
 
 		if n == len(data) {
 			return n, false, nil
