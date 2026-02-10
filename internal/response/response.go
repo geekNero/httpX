@@ -1,9 +1,12 @@
 package response
 
 import (
-	"basic_protocol/internal/headers"
 	"fmt"
 	"io"
+	"strconv"
+
+	"basic_protocol/internal/common"
+	"basic_protocol/internal/headers"
 )
 
 type StatusCode int
@@ -18,13 +21,11 @@ const (
 	HTTP = "HTTP/1.1"
 )
 
-var (
-	errorCodeMap = map[StatusCode]string{
-		StatusBadRequest:          "Bad Request",
-		StatusOK:                  "OK",
-		StatusInternalServerError: "Internal Server Error",
-	}
-)
+var errorCodeMap = map[StatusCode]string{
+	StatusBadRequest:          "Bad Request",
+	StatusOK:                  "OK",
+	StatusInternalServerError: "Internal Server Error",
+}
 
 type WriterState string
 
@@ -49,7 +50,6 @@ func NewResponseWriter(conn io.Writer) *Writer {
 }
 
 func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
-
 	if w.WriterState != StatusLine {
 		return fmt.Errorf("writer state expected %s, got: %s", StatusLine, w.WriterState)
 	}
@@ -67,14 +67,15 @@ func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 
 func GetDefaultHeaders(contentLen int) headers.Headers {
 	h := make(headers.Headers)
-	h[headers.CONTENT_LENGTH] = fmt.Sprintf("%d", contentLen)
+	if contentLen > 0 {
+		h[headers.CONTENT_LENGTH] = fmt.Sprintf("%d", contentLen)
+	}
 	h[headers.CONTENT_TYPE] = "text/plain"
 	h[headers.CONNECTON] = "close"
 	return h
 }
 
 func (w *Writer) WriteHeaders(h headers.Headers) error {
-
 	if w.WriterState != Headers {
 		return fmt.Errorf("writer state expected %s, got: %s", Headers, w.WriterState)
 	}
@@ -93,7 +94,6 @@ func (w *Writer) WriteHeaders(h headers.Headers) error {
 }
 
 func (w *Writer) WriteBody(p []byte) (int, error) {
-
 	if w.WriterState != Body {
 		return 0, fmt.Errorf("writer state expected %s, got: %s", Body, w.WriterState)
 	}
@@ -104,4 +104,35 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 	}
 	w.WriterState = Done
 	return n, nil
+}
+
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	if w.WriterState != Body {
+		return 0, fmt.Errorf("writer state expected %s, got: %s", Body, w.WriterState)
+	}
+	// Format the size header
+	head := strconv.FormatInt(int64(len(p)), 16) + common.CRLF
+
+	// Use io.MultiWriter or just write sequentially
+	// The "errors" can be handled concisely:
+	if _, err := w.writer.Write([]byte(head)); err != nil {
+		return 0, err
+	}
+	n, err := w.writer.Write(p)
+	if err != nil {
+		return n, err
+	}
+	if _, err := w.writer.Write([]byte(common.CRLF)); err != nil {
+		return n, err
+	}
+	return n, nil
+}
+
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+	if w.WriterState != Body {
+		return 0, fmt.Errorf("writer state expected %s, got: %s", Body, w.WriterState)
+	}
+
+	lastChunk := []byte("0" + common.CRLF + common.CRLF)
+	return w.writer.Write(lastChunk)
 }

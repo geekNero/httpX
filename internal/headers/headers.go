@@ -90,6 +90,7 @@ func (h Headers) Set(key, value string) error {
 	if !isValidHeaderKey(key) {
 		return fmt.Errorf("header key contains disallowed characters")
 	}
+	key = strings.ToLower(key)
 	if h[key] == "" {
 		h[key] = value
 	} else {
@@ -104,6 +105,7 @@ func (h Headers) Override(key, value string) error {
 	if !isValidHeaderKey(key) {
 		return fmt.Errorf("header key contains disallowed characters")
 	}
+	key = strings.ToLower(key)
 	h[key] = value
 	return nil
 }
