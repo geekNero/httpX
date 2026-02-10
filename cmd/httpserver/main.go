@@ -27,7 +27,7 @@ func testFunc(w *response.Writer, req *request.Request) {
     <p>Your request honestly kinda sucked.</p>
   </body>
 </html>`)
-		statusCode = response.BadRequest
+		statusCode = response.StatusBadRequest
 	case "/myproblem":
 		body = []byte(`<html>
   <head>
@@ -38,7 +38,7 @@ func testFunc(w *response.Writer, req *request.Request) {
     <p>Okay, you know what? This one is on me.</p>
   </body>
 </html>`)
-		statusCode = response.InternalServerError
+		statusCode = response.StatusInternalServerError
 	default:
 		body = []byte(`<html>
   <head>
@@ -49,7 +49,7 @@ func testFunc(w *response.Writer, req *request.Request) {
     <p>Your request was an absolute banger.</p>
   </body>
 </html>`)
-		statusCode = response.OK
+		statusCode = response.StatusOK
 	}
 	h := response.GetDefaultHeaders(len(body))
 	h.Override(headers.CONTENT_TYPE, "text/html")

@@ -38,7 +38,7 @@ func (s *Server) handle(conn net.Conn) {
 	request, err := request.RequestFromReader(conn)
 	if err != nil {
 		errorString := "failed to parse request, error: " + err.Error()
-		err1 := resp.WriteStatusLine(response.BadRequest)
+		err1 := resp.WriteStatusLine(response.StatusBadRequest)
 		err2 := resp.WriteHeaders(response.GetDefaultHeaders(len(errorString)))
 		_, err = resp.WriteBody([]byte(errorString))
 

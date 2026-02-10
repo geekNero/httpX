@@ -10,9 +10,9 @@ type StatusCode int
 
 const (
 	// HTTP Error Codes
-	BadRequest          StatusCode = 400
-	OK                  StatusCode = 200
-	InternalServerError StatusCode = 500
+	StatusBadRequest          StatusCode = 400
+	StatusOK                  StatusCode = 200
+	StatusInternalServerError StatusCode = 500
 
 	// Protocol
 	HTTP = "HTTP/1.1"
@@ -20,9 +20,9 @@ const (
 
 var (
 	errorCodeMap = map[StatusCode]string{
-		BadRequest:          "Bad Request",
-		OK:                  "OK",
-		InternalServerError: "Internal Server Error",
+		StatusBadRequest:          "Bad Request",
+		StatusOK:                  "OK",
+		StatusInternalServerError: "Internal Server Error",
 	}
 )
 
