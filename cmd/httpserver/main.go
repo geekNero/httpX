@@ -60,6 +60,7 @@ func failedTrailers(err string) headers.Headers {
 func testFunc(w *response.Writer, req *request.Request) {
 	var body []byte
 	var statusCode response.StatusCode
+	var contentType string
 
 	baseURL := "https://httpbin.org/"
 
@@ -69,8 +70,19 @@ func testFunc(w *response.Writer, req *request.Request) {
 	switch target {
 	case "yourproblem":
 		body, statusCode = get400()
+		contentType = "text/html"
 	case "myproblem":
 		body, statusCode = get500()
+		contentType = "text/html"
+	case "video":
+		var err error
+		body, err = os.ReadFile("assets/vim.mp4")
+		statusCode = response.StatusOK
+		if err != nil {
+			body, statusCode = get500()
+		}
+		contentType = "video/mp4"
+
 	case "httpbin":
 		// proxying for httpbin
 		resp, err := http.Get(baseURL + remaining)
@@ -141,7 +153,7 @@ func testFunc(w *response.Writer, req *request.Request) {
 		statusCode = response.StatusOK
 	}
 	h := response.GetDefaultHeaders(len(body))
-	h.Override(headers.CONTENT_TYPE, "text/html")
+	h.Override(headers.CONTENT_TYPE, contentType)
 	// log.Printf("statusLine: %s\nheaders: %+v\nbody:\n%s\n", statusCode, h, string(body))
 	w.WriteStatusLine(statusCode)
 	w.WriteHeaders(h)
