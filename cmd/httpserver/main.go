@@ -1,10 +1,13 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -42,6 +45,16 @@ func get500() ([]byte, response.StatusCode) {
 </html>`)
 	statusCode := response.StatusInternalServerError
 	return body, statusCode
+}
+
+func failedTrailers(err string) headers.Headers {
+	h := headers.Headers{}
+	// "x-content-sha256, x-content-length, x-error"
+	h.Set("x-content-sha256", "")
+	h.Set("x-content-length", "")
+	h.Set("x-error", err)
+
+	return h
 }
 
 func testFunc(w *response.Writer, req *request.Request) {
@@ -83,26 +96,36 @@ func testFunc(w *response.Writer, req *request.Request) {
 		if resp.Header.Get(headers.CONTENT_TYPE) != "" {
 			h.Override(headers.CONTENT_TYPE, resp.Header.Get(headers.CONTENT_TYPE))
 		}
+		h.Set(headers.TRAILERS, "x-content-sha256, x-content-length, x-error")
 		w.WriteHeaders(h)
-		buffer := make([]byte, 32)
+		buffer := make([]byte, 1024)
+		completeBody := []byte{}
 		for { // We already have the entire body, but for the sake of learning, we'll be chunk encoding our resonse.
 			n, err := resp.Body.Read(buffer)
 			if err != nil {
 				log.Println("failed to read response body, error: ", err.Error())
-				w.WriteChunkedBodyDone()
+				w.WriteChunkedBodyDone(failedTrailers(err.Error()))
 				return
 			}
+			completeBody = append(completeBody, buffer...)
 			_, err = w.WriteChunkedBody(buffer[:n])
 			if err != nil {
 				log.Println("failed to write chunked body, error: ", err.Error())
-				w.WriteChunkedBodyDone()
+				w.WriteChunkedBodyDone(failedTrailers(err.Error()))
 				return
 			}
 			if n < 1024 {
 				break
 			}
 		}
-		w.WriteChunkedBodyDone()
+
+		trailers := headers.Headers{}
+		hash := sha256.Sum256(completeBody)
+		trailers.Set("x-content-sha256", fmt.Sprintf("%x", hash))
+		trailers.Set("x-content-length", strconv.Itoa(len(completeBody)))
+		trailers.Set("x-error", "")
+
+		w.WriteChunkedBodyDone(trailers)
 		return
 
 	default:

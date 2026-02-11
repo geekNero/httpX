@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"basic_protocol/internal/common"
 	"basic_protocol/internal/headers"
@@ -39,7 +40,8 @@ const (
 
 type Writer struct {
 	WriterState
-	writer io.Writer
+	writer   io.Writer
+	Trailers []string
 }
 
 func NewResponseWriter(conn io.Writer) *Writer {
@@ -81,6 +83,11 @@ func (w *Writer) WriteHeaders(h headers.Headers) error {
 	}
 
 	for key, value := range h {
+
+		if strings.ToLower(key) == headers.TRAILERS {
+			w.Trailers = strings.Split(value, ",")
+		}
+
 		fieldLine := fmt.Sprintf("%s: %s\r\n", key, value)
 		w.writer.Write([]byte(fieldLine))
 	}
@@ -128,11 +135,45 @@ func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
 	return n, nil
 }
 
-func (w *Writer) WriteChunkedBodyDone() (int, error) {
+func (w *Writer) WriteChunkedBodyDone(h headers.Headers) (int, error) {
 	if w.WriterState != Body {
 		return 0, fmt.Errorf("writer state expected %s, got: %s", Body, w.WriterState)
 	}
 
-	lastChunk := []byte("0" + common.CRLF + common.CRLF)
-	return w.writer.Write(lastChunk)
+	n := 0
+	var err error
+	lastChunk := []byte("0" + common.CRLF)
+	n, err = w.writer.Write(lastChunk)
+	if err != nil {
+		return 0, err
+	}
+
+	for key, value := range h {
+		found := false
+		for _, k := range w.Trailers {
+			if strings.Trim(k, " ") == key {
+				found = true
+				break
+			}
+		}
+		if !found {
+			// as this is an error generated due to failed validation, we'll attempt to write done
+			err = fmt.Errorf("trailer key = '%s' not passed earlier in the headers", key)
+			break
+		}
+		var cur int
+		cur, err = fmt.Fprintf(w.writer, "%s: %s\n\r", key, value)
+		n += cur
+		if err != nil {
+			// since this is a writer error, we won't attempt to make another write
+			return n, err
+		}
+	}
+	// write done but preserve the validation error
+	n1, err1 := w.writer.Write([]byte(common.CRLF))
+	if err1 != nil {
+		return n, err1
+	}
+	n += n1
+	return n, err
 }

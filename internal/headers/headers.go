@@ -14,6 +14,7 @@ const (
 	CONTENT_LENGTH = "content-length"
 	CONNECTON      = "connection"
 	CONTENT_TYPE   = "content-type"
+	TRAILERS       = "trailer"
 )
 
 type Headers map[string]string
